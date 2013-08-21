@@ -261,6 +261,11 @@ class HTTPebble(bridge.PebbleBridge):
 		if len(self._id) > 4:
 			self._id = self._id[-5:-3] + self._id[-2:] #TODO: Verify this doesn't break non-lightblue folks.
 
+		vals = [(HTTP_CONNECT_KEY, 'INT', pack("<B", 1))]
+		tuples = [AppMessage.construct_tuple(*x) for x in vals]
+		msg = AppMessage.construct_message(AppMessage.construct_dict(tuples), "PUSH", self.UUID.bytes, '\x01') #TODO: Transaction handling.
+		pebble._send_message("APPLICATION_MESSAGE", msg)
+
 
 	def process(self, msg_dict):
 		parameters = {}
