@@ -69,7 +69,7 @@ class HTTPebble(bridge.PebbleBridge):
 		del parameters[HTTP_COOKIE_KEY]
 		del parameters[HTTP_APP_ID_KEY]
 
-		log.info(uri)
+		log.info("URI: %s" % repr(uri))
 		log.info(json.dumps(parameters))
 
 		req = urllib2.Request(uri)

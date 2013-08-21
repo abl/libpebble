@@ -939,6 +939,10 @@ class AppMessage(object):
 		return (array.array('B',data), "%sP" % v_len)
 
 	def read_cstring(v_type, v_len, data):
+		#TODO: This seems kludgy.
+		n = data.find("\x00")
+		if n != -1:
+			data = data[:n]
 		return (data, "%ss" % v_len)
 
 	def read_uint(v_type, v_len, data):
