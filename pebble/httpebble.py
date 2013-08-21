@@ -75,35 +75,51 @@ class HTTPebble(bridge.PebbleBridge):
 		req = urllib2.Request(uri)
 		req.add_header('Content-Type', 'application/json')
 		req.add_header('X-Pebble-ID', self._id)
-		response = urllib2.urlopen(req, json.dumps(parameters))
+		
+		try:
+			response = urllib2.urlopen(req, json.dumps(parameters))
 
-		code = response.getcode()
-		data = json.load(response)
+			code = response.getcode()
+			success = 1 if code is 200 else 0
 
-		log.info("%d: %s" % (code, data))
+			data = json.load(response)
+			if type(data) is not dict:
+				log.warn("Received invalid (non-dictionary) JSON from server.")
+				success = 0
+		except urllib2.URLError as e:
+			log.warn("URLError: %s" % e.reason)
+			success = 0
+		except:
+			exctype, value = sys.exc_info()[:2]
+			log.warn("%s: %s" % (exctype, value))
+			success = 0
+		
 
 		vals = [
 			(HTTP_STATUS_KEY, "UINT", pack("<H", code)),
-			(HTTP_URL_KEY, "UINT", pack("<B", (1 if code is 200 else 0))),
+			(HTTP_URL_KEY, "UINT", pack("<B", success)),
 			(HTTP_COOKIE_KEY, "UINT", pack("<I", cookie)),
 			(HTTP_APP_ID_KEY, "UINT", pack("<I", app_id))
 		]
 
-		for k in data:
-			v = data[k]
-			k = int(k)
-			if type(v) is list:
-				assert len(v) == 2
-				t = v[0]
-				v = v[1]
+		if success:
+			log.info("%d: %s" % (code, data))
 
-				assert t in self.type_conversion
-				t = self.type_conversion[t]
-				vals.append((k, t[0], pack('<%s' % t[1], v)))
-			elif type(v) is int:
-				vals.append((k, "INT", pack('<i', v)))
-			else:
-				vals.append((k, "CSTRING", v))
+			for k in data:
+				v = data[k]
+				k = int(k)
+				if type(v) is list:
+					assert len(v) == 2
+					t = v[0]
+					v = v[1]
+
+					assert t in self.type_conversion
+					t = self.type_conversion[t]
+					vals.append((k, t[0], pack('<%s' % t[1], v)))
+				elif type(v) is int:
+					vals.append((k, "INT", pack('<i', v)))
+				else:
+					vals.append((k, "CSTRING", v))
 
 		tuples = [AppMessage.construct_tuple(*x) for x in vals]
 		return AppMessage.construct_dict(tuples)
