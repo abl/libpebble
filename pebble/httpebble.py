@@ -9,6 +9,7 @@ log.setLevel(logging.DEBUG)
 import bridge, uuid, json, urllib2, collections, time
 
 from struct import pack, unpack
+from base64 import b64decode
 
 from pebble import AppMessage
 
@@ -113,9 +114,12 @@ class HTTPebble(bridge.PebbleBridge):
 					t = v[0]
 					v = v[1]
 
-					assert t in self.type_conversion
-					t = self.type_conversion[t]
-					vals.append((k, t[0], pack('<%s' % t[1], v)))
+					if t == 'd':
+						vals.append((k, "BYTE_ARRAY", b64decode(v)))
+					else:
+						assert t in self.type_conversion
+						t = self.type_conversion[t]
+						vals.append((k, t[0], pack('<%s' % t[1], v)))
 				elif type(v) is int:
 					vals.append((k, "INT", pack('<i', v)))
 				else:
